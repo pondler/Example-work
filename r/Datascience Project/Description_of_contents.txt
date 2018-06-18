@@ -1,0 +1,1 @@
+An r-markdown file contains all the R code. Some machine-learning and data exploration techniques are the main focus of this project. See the html file for the write-up of the project. 

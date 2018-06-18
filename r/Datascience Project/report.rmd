@@ -1,0 +1,505 @@
+--- 
+title: "Exploratory Data Analysis of Drug Use Data" 
+author: "Christopher McLeod"  
+date: "17 November 2017"  
+output: html_document
+---
+  
+```{r echo = FALSE, include = FALSE}
+require("ggplot2")
+require("plyr")
+require("knitr")
+require("reshape2")
+require("ROCR")
+require("Amelia")
+require("class")
+require("rpart")
+require("nnet")
+require("randomForest")
+require("party")
+require("e1071")
+# set working directory, reader should change this! 
+setwd("~/Documents/gituni/datasci")
+
+load("druguse.Rdata")
+```
+
+
+We can run the following to see that our data is complete, with no NA values <br>
+```{r include = FALSE}
+apply(druguse, 2, function(x) any(is.na(x)))
+```
+
+
+## Qu 1 
+###(a).  
+The below plots a stacked bar graph comparing use levels (high or low) against the country, using geom_bar. <br>
+
+```{r fig.align='center'}
+ggplot(druguse, aes(x=country, fill = UseLevel)) + geom_bar() +
+        xlab("Country") + ylab("Number of Users") +
+        ggtitle("Plot of Levels of Users by Country") +
+        scale_fill_discrete(name="Use Level") + 
+        theme_light()
+```
+A table details the count of high/low users by country (make percentages) <br>
+```{r}
+x <- table(druguse$country, druguse$UseLevel)
+x <- cbind(x,signif(prop.table(x,margin=1)*100,3))
+colnames(x)[c(3,4)] <- c('(%) low','(%) high')
+kable(x)
+```
+
+From the above we can see that most of our data comes from the UK. It's also clear that the US is the country with the highest proportion of high-use-level users in the dataset, while the UK is the lowest. <br>
+
+Now the same is done to produce a graph of gender against count of use level, filled by high or low levels. <br>
+```{r fig.align='center'}
+ggplot(druguse, aes(x = gender, fill = UseLevel)) + geom_bar() +
+        xlab("Gender") + ylab("Number of Users") +
+        ggtitle("Plot of Levels of Users by Gender") +
+        scale_fill_discrete(name="Use Level") +
+        theme_light()
+```
+A table details the count of high/low users by gender <br>
+
+```{r results='asis'}
+y = table(druguse$gender, druguse$UseLevel)
+y <- cbind(y,signif(prop.table(y,margin=1)*100,3))
+colnames(y)[c(3,4)] <- c('(%) low','(%) high')
+kable(y)
+```
+So in the dataset, males make up the large proportion of high-use-level users, i.e. most males are high-use-level drug users and most females are not. <br>
+
+###(b).<br>
+Given the many variables in the dataset we can look at some interesting corelations. For example, how do one's impulsiveness and how open to experience one is relate to one's use level? This can be explored by letting `opentoexperience` vary with `impulsive` and inspecting when users use-levels are high or low. This is done below, displayed as a jitter plot. <br>
+```{r fig.align='center'}
+ggplot(druguse, aes(impulsiveness, opentoexperience)) + 
+      geom_jitter(mapping=aes(x=impulsiveness, y=opentoexperience, color=factor(UseLevel))) + 
+      xlab("Open to Experience") + ylab("Impulsiveness") +
+      scale_color_discrete(name="Use Level") +
+      theme_light()
+```
+
+```{r include = FALSE}
+png("epa1.png", res=80, height=800, width=1600) 
+ggplot(druguse, aes(impulsiveness, opentoexperience)) + 
+      geom_jitter(mapping=aes(x=impulsiveness, y=opentoexperience, color=factor(UseLevel))) + 
+      ggtitle("Plot Openness against Impulsiveness") +
+      xlab("Open to Experience") + ylab("Impulsiveness") +
+      scale_color_discrete(name="Use Level")
+dev.off()
+```
+
+From this one might infer that having a high measurement for both variables might predispose one to a high drug use-level. Clearly there is a correlation to support this hypothesis. The proportion of high-use-level users with positive readings for `opentoexperience` and `impulsiveness` is 
+<br>
+```{r}
+open.impulse <- length(which((druguse$UseLevel=='high')& (druguse$opentoexperience>0)&(druguse$impulsiveness>0))) /length(which((druguse$opentoexperience>0)&(druguse$impulsiveness>0)))
+
+print(paste("Proportion of high with open>0 and impulse>0 = ", open.impulse))
+```
+which is quite large. And individually the proportion of high-use-level users with either measure bigger than zero are significant as well <br> 
+```{r}
+open <- length(which((druguse$UseLevel=='high')& (druguse$opentoexperience>0))) /length(which((druguse$opentoexperience>0)))
+impulse <-length(which((druguse$UseLevel=='high')&(druguse$impulsiveness>0))) /length(which((druguse$impulsiveness>0)))
+
+print(paste("Proportion of high with open>0 = ", open))
+print(paste("Proportion of high with impulse>0 = ", impulse))
+```
+<br>
+
+In part (a). We saw that the USA reported the highest proportion of high-use-level users. From this we might seek to ask _What's the USA's most popular drug?_ Further, we can also inquire, _with which generation are these regularly used drugs most popular?_  <br>
+```{r warnings = FALSE , fig.align='center'}
+# take the age part of the drug use df and all the drug records 
+filter_age.usa = druguse[druguse$country=="USA",][,c(1,17:30)]
+# melt the results into 3 melting the drug types into one column and values into another corresponding column
+age.usa = melt(filter_age.usa)
+# make the condition that the drug of choice is being used at least once a month
+age.usa_reg = age.usa[age.usa$value>3,]
+
+
+ggplot(age.usa_reg, aes(x=variable, fill=agegroup)) +
+        geom_bar() +
+        xlab("Type of Drug") + ylab("Number of Regular Users in USA") +
+        ggtitle("Plot Showing Most Popular Drugs in the USA") +
+        scale_fill_discrete(name="Age Group") +
+        scale_x_discrete(labels = abbreviate) + 
+        theme_light()
+```
+
+```{r include = FALSE}
+png("epa2.png", res=80, height=800, width=1600) 
+ggplot(age.usa_reg, aes(x=variable, fill=agegroup)) +
+        geom_bar() +
+        xlab("Type of Drug") + ylab("Number of Regular Users in USA") +
+        ggtitle("Plot Showing Most Popular Drugs in the USA") +
+        scale_fill_discrete(name="Age Group") +
+        scale_x_discrete(labels = abbreviate) 
+dev.off()
+```
+
+
+We immediately see the USA's most popular regularly used drug is cannabis by a long way. It is popularised among those 18-24, and is (relative to other drug use) even still fairly popular for those 25-34. Across all listed drugs, those 18-24 make up the greatest group of regular users in the US, making them the most active age group. This can be seen to be true in the folowing table <br>
+```{r }
+x <- table(age.usa_reg$variable, age.usa_reg$agegroup)
+kable(x)
+```
+
+The only drug that people of the age 65+ are regularly using in the US is Benzodiaz. Benzodiaepine diazepam (valium) - pain & sedation. So one can most likely conclude that generally those of age 65+ are not involved in recreational drug use in the US, at least not for the current dataset.The more general trend we see is that agegroup and severity (the measure of ones use of drugs) are inversely proportional. <br>
+
+The gender plot/table also seem to highlight a huge divide between those with high and low use levels. As we saw, around 71% of males identified as having high use levels, compared to the 39% of females. We can look by age group and find out the severity of the usage across the genders <br>
+```{r fig.align='center'}
+ggplot(data = druguse, aes(x=agegroup,y=severity, color = gender)) + geom_boxplot() + 
+       xlab("age group") + ylab("severity") +
+      ggtitle("Box-plot Showing Severity Across Genders") +
+      scale_fill_discrete(name="Gender") +
+      theme_light()
+```
+```{r include = FALSE}
+png("epa3.png", res=80, height=800, width=1600) 
+ggplot(data = druguse, aes(x=agegroup,y=severity, color = gender)) + geom_boxplot() + 
+       xlab("age group") + ylab("severity") +
+      ggtitle("Box-plot Showing Severity Across Genders") +
+      scale_fill_discrete(name="Gender")
+dev.off()
+```
+
+We see that males in our dataset also have higher means and quartile readings for sensitivity in almost all agegroups. <br>
+
+
+
+##Qu 2
+###(a).  
+
+We wish to perform a logistic regression to predict high or low use level, based on the first 16 predictors. We wish to train the model on the first 1500 rows and test our prediction on the rest. The training and test data are taken from the original `druguse` datafram based on these conditions. Also a glm is fitted to the binomial response variable `UseLevel` using a sigmoid function <br>
+```{r}
+set.seed(1234)
+train <- druguse[1:1500,c(34,1:16)]
+test <- druguse[1501:1855,c(34,1:16)]
+
+model <- glm(UseLevel ~., family=binomial(link='logit'), data = train)
+```
+Our model has the following output  
+```{r fig.align='center'}
+summary(model)
+```
+
+The first column `Estimate` gives us a guess for the logit relationship between the covariate and the response in the linear model; it gives an estimate of the amount by which the response increases if the the covariate was one unit higher. The next column `Std. Error` shows the standard error of these estimates. Dividing the estimate by the standard error gives the third column `z value`. This is assumed to be a normally distributed and is what gives a understanding of what covariates are of statistical significance to the model. The final column gives the ` Pr(>|z|)` gives the two-tailed p-values that correspond z-values from the previous column in a standard normal distribution. <br>
+
+The stars generally point to p-values which are too small to reject the null hypothesis that the intercept of the covariate are actually 0. More stars means more likelihood that the covariate has more significance to the model, compared to its standard error. From the above, we see with great cerainty some of the most significant predictors are `gender`, `sensation`, `opentoexperience` `nicotine`, `country=='UK'`. `sensation`,`opnentoexperience` and `nicotine` have positive values in `Estimate`, so increasing the readings in these predictors increases the odds of having `UseLevel='high'`, as does being male. However, the estimate for those with `country=='UK'` has negative value, which means the odds of being a high-use-level user if the subject is from the UK. From the summary we can see that `ethinicityMixed-black/Asian` has a large positive estimation value, but the standard error around this estimation is so large that we can not say how significant this estimation is with any certainty. <br>
+
+Of course these judgements come with the limitation of our training set. Having `country == "USA"` does not seem to be an important predictor of use-level, yet we saw that of ~89% of Americans in the dataset were high-level users. It is possible that being American does not predispose one to a higher likelihood of having a "high" uselevel reading and it is coincidence, but it is also possible that our training data has not accurately represented the dataset as a whole. Also, we might logically believe that being 65+ is going to have a big (negative) effect on one's predicted use-level, yet the model shows no conclusive evidence for this - we might choose to see this as a limitation of our model. <br>
+
+###(b).  <br> 
+
+We now use the model to predict the use level on the test set, based on the predictors. Then we use an if-else condition to introduce a cutpoint at 0.5, where we assign the value "high" if the prediction is above the cutpoint, and "low" otherwise. From here we make a table to see when the prediction is right or wrong <br>
+```{r fig.align='center'}
+p <- predict(model, newdata=subset(test,select=c(2:17)), type="response")
+P <- ifelse(p>0.5,"high", "low")
+x <- table(P, test$UseLevel)
+
+kable(x)
+```
+
+
+
+###(c).  <br>
+We calculate the accuracy of the prediction as the average number of times the prediction was right for the test set, and see 
+```{r}
+acc <- sum(P==test$UseLevel)/nrow(test)
+message("Accuracy = ", format(acc,digits=4))
+```
+which is pretty high. 
+
+
+###(d). <br>
+
+To have take a look at the extra-sample error, we loop the above process 10 times and at each point select a 'fold' of the dataset to be the test set. We calculate the it to be a random subset roughly a tenth of the size of the orginal dataset, and store the accuracy when predicting on the current test set. At the end, the extra-sample error is given as the average of the errors of on each fold. The code is not explained further as the method is very similar to the practical. <br>
+
+```{r}
+set.seed(1234)
+Accs <- 0*(1:10)
+test.size <- round(nrow(druguse)/10)
+inds <- sample(nrow(druguse))
+
+for (k in 1:10){
+  test.inds <- inds[(test.size*(k-1)+1) : (test.size*k)] 
+  test.k <- druguse[test.inds,c(34,1:16)]
+  train.k <- druguse[-test.inds, c(34,1:16)]
+  model <- glm(UseLevel ~., family=binomial(link='logit'), data = train.k)
+  p.k <- predict(model, newdata=subset(test.k,select=c(2:17)), type="response")
+  Accs[k] <- sum((ifelse(p.k>0.5, "high", "low") == test.k$UseLevel))/nrow(test.k)
+}
+
+paste0(c("Accuracy for k-fold from 1:10 = ", format(Accs,digits = 4)))
+paste0("Estimated 10-fold extra-sample loss = ", format(sum(1-Accs)/7,digits = 4))
+```
+
+
+## Qu3 
+
+### (a). <br> 
+In this part, we will use a K-Nearest-Neighbors model to predict use level, using the same predictors as before. The KNN algorithm is more strict with its input variables than the logistic regression algorithm. It requires that all points of the training set are equipped with a metric, so that there is a meaningful distance between the predictors of different points (and not falsely implied significance due to the varying scales of out data). For the distances to be meaningful for all the predictors, we need to scale the continuous data and find a way embed the categorical data into a metric space so that we can describe a difference between their different levels.<br>
+For the columns of continous variables, we simply use the scale function to subtract the mean and divide by the standard deviation of the column. This is done, and then we bind the categorical variables to the front of the newly created sub-dataframe `clonedrugs`.  
+```{r}
+clonedrugs <- as.data.frame(scale(druguse[,c(3,6:16)], center = TRUE, scale = TRUE))
+clonedrugs <- cbind(druguse[,c(34,1,2,4,5)],clonedrugs)
+```
+<br> 
+For the catgeroical variables of the above dataset, we need to encode these into numerical values. The simplest way of doing this is for each n-ary categorical variable, project each catgeory to a unique vertex of the standard n-simplex. E.g if we have a categorical predictor 'colour' with values {'red','blue','green'} we map each value (arbitrarly but distinctly) to $(1,0,0)^T, (0,1,0)^T, (0,0,1)^T \in \mathbb{R}^{3}$. Then the Euclidean distance of these categorical values is 0 if they're identical and $\sqrt{2}$ otherwise. While we have to accept that this $\sqrt{2}$ value has introduced an arbitrary amount of significance, we at least a metric which gives us a constant value to imply 'difference' and a 0 to imply 'same'. This is done using the model.matrix function on each column of categorical variables <br> 
+
+```{r}
+for (i in 2:5){
+  clonedrugs[,i] <- model.matrix(~clonedrugs[,i],clonedrugs)
+}
+```
+
+Next, we do a 5-fold-cross-validation and k-parameter variation in one step. This allows us to find the optimal value for k, as well as the optimum test fold. We vary k from 1 to 100 and create a $5\times 100$ matrix, where the $ij^{th}$ entry corresponds to the accuracy of KNN prediction on the $i^{th}$ fold with parameter $k = j$. The cross-fold-validation is carried out in much the same way as in Qu 2 (d). Sample creates a random order of the points and the test sample is taken as a fifth of the data points by moving through each fifth of the sample. At every point, the knn function predicts the uselevel on the training set using the test set and stores an accuracy, which is measured as the mean value of how many predictions were correct <br> 
+```{r}
+set.seed(seed = 1234)
+test.size <- round(nrow(clonedrugs)/5)
+inds <- sample(nrow(clonedrugs))
+Accs <- matrix(0,100,5)
+  
+for (n in 1:5){
+  for (k in 1:100){
+    test.inds_nk <- inds[ (test.size*(n-1)+1) : (test.size*n) ]
+    test.nk <- clonedrugs[test.inds_nk, ]
+    train.nk <- clonedrugs[-test.inds_nk, ]
+    
+    predictions <- knn(train.nk[, -1], test.nk[, -1], train.nk$UseLevel, k = k)
+    Accs[k,n] <- mean(predictions == test.nk$UseLevel)
+  }
+}
+```
+
+
+
+<br>
+To see how each fold and k value affects the accuracy, we can make a plot of the accuracy as k varies with the fold number <br>
+```{r fig.align='center'}
+moltenAccs <- melt(Accs, id.vars="")
+ggplot(data=moltenAccs, aes(x=Var1, y=value, group=Var2, color=factor(Var2))) + geom_line() +
+  xlab("k") + ylab('Accuracy') + scale_color_discrete(name = "Fold") + 
+  theme_light()
+
+```
+
+
+```{r include = FALSE}
+png("knnfold1.png", res=80, height=800, width=1600) 
+ggplot(data=moltenAccs, aes(x=Var1, y=value, group=Var2, color=factor(Var2))) + geom_line() +
+  xlab("k") + ylab('Accuracy') + scale_color_discrete(name = "Fold")
+dev.off()
+```
+
+
+We can see that some folds perform better than others, but all exhibit similar general trends. For example, if k is too small the model overfits and the accuracy is fairly low. As k grows, we see the knn algorithms reaching optimum close to the region $10 < k < 20$. After this, on some folds we can see indication that eventually the model begins underfitting and the accuracy starts decreasing.<br>
+We see that fold 3 seems to have the highest accuracy reading and looks like a well behaved knn-accuracy curve. Searching the array for the maximum value, we find that it indeed lies on the third fold and in-fact occurs twice <br>
+```{r fig.align='center'}
+which(Accs==max(Accs),arr.ind = TRUE)
+```
+
+We can retain more sensitivity by picking the smaller value of k=17, visualised here <br>
+```{r fig.align='center'}
+ggplot(data=moltenAccs[moltenAccs$Var2==3,], aes(x = Var1, y = value)) + geom_line(color = "steelblue") + 
+  geom_vline(aes(xintercept = 17), color="red") + geom_text(aes(x=20,y=0.825,label="\n k=17")) +
+  xlab("k") + ylab("accuracy") + 
+  theme_light()
+
+```
+
+```{r include = FALSE}
+png("knnfold.png", res=80, height=800, width=1600) 
+ggplot(data=moltenAccs[moltenAccs$Var2==3,], aes(x = Var1, y = value)) + geom_line(color = "steelblue") + 
+  geom_vline(aes(xintercept = 17), color="red") + geom_text(aes(x=20,y=0.825,label="\n k=17")) +
+  xlab("k") + ylab("accuracy")
+dev.off()
+```
+
+Now that we have locked in our optimum parameters for the KNN algorithm, we can apply it to get the optimum set of predictions for the test set <br>
+
+```{r}
+test.size <- round(nrow(clonedrugs)/5)
+
+knn.test.inds <- inds[ (test.size*(3-1)+1) : (test.size*3) ]
+knn.test <- clonedrugs[knn.test.inds, ]
+knn.train <- clonedrugs[-knn.test.inds, ]
+
+knn.predictions <- knn(knn.train[, -1], knn.test[, -1], knn.train$UseLevel, k = 17)
+```
+
+###(b). <br>
+
+This model has accuracy <br>
+ 
+```{r}
+print(paste("Accuracy = ", format(mean(knn.predictions == knn.test$UseLevel),digits = 4)))
+```
+
+Slightly higher than the result we got for the logistic regression. we can visualise the accuracy in the table below <br>
+```{r}
+x <- table(knn.predictions, knn.test$UseLevel)
+kable(x)
+```
+
+Since we already have the 5-fold cross analysis for k=17, we can simply find the average of the errors over the other folds to get an estimation of the extra-sample error
+```{r}
+exserr <- sum(1 - Accs[17,])/5 
+exserr
+```
+
+
+## Qu4
+###(a). <br>
+We will now predict if someone has ever done heroin using the first 16 predictors _and_ their other drug usage. <br>
+We begin by creating a binary response vector, which for our druguse dataset tells us whether someone has ever used heroin or not <br>
+
+```{r}
+binHeroin <- ifelse(druguse$heroin == 0, "no", "yes")
+```
+
+Bind this to the predictors and drug use from the original dataset (not including the orginal `heroin` column from `druguse`) to create a new dataframe `drugforest` <br>
+```{r}
+drugforest <- cbind(binHeroin,druguse[,c(1:23, 25:30)])
+```
+
+From here we assign the first 1500 rows of the new dataframe to training and the rest to testing. We run the random forest algorithm on this data to predict the binomial response - heroin usage. ntree is set at 500, a value for which the algorithm converges for this problem  <br>
+```{r}
+rf.train <- drugforest[1:1500,]
+rf.test <- drugforest[1501:1885,]
+
+RF <- randomForest(binHeroin ~., data=rf.train, importance = TRUE, ntree = 500)
+rf.prediction <- predict(RF, rf.test)
+
+rf.acc <- mean(rf.prediction == rf.test$binHeroin)
+```
+
+The table below shows the accuracy of the prediction <br>
+```{r}
+x<- table(rf.prediction, rf.test$binHeroin)
+kable(x)
+
+print(paste("Accuracy = ", rf.acc))
+```
+
+We can list the cross-entropy of the random forest below to gage the importance of the predictors <br>
+```{r fig.align='center'}
+importance(RF, 1)
+```
+From the R documentation on the importance function (https://www.rdocumentation.org/packages/randomForest/versions/4.6-12/topics/importance) the measures above are caluclated in the following way: <br>
+\center
+_"For each tree, the prediction error on the out-of-bag portion of the data is recorded (error rate for classification). Then the same is done after permuting each predictor variable. The difference between the two are then averaged over all trees, and normalized by the standard deviation of the differences." _<br>
+\center
+So having a  higher Mean Decrease Accuracy refers directly to the importance of the variable in classifying the output. The reading of 23.37 for `methadone` means that permuting this predictor leads to a 23.37% more classification error. So from this, we see a few of the most important predictors are `metahdone`, `crack` and `cocaine`, whereas predictors like `agreeableness` and `extraversion` actually led to higher classification error in the random forest prediction, potentially indicating them as unnecessary data. <br>
+
+###(b). <br>
+
+In Qu1 part (b), the second graph showed just how popular regular cannabis use is in the USA. For this reason, it seems reasonable to pose the questions: _what information do we need to know about someone to predict their propensity to use cannabis regularly?_ and _Does one's country affect the likelihood one uses cannabis regularly?_ In light of the second question we don't restrict just to the US, just in case that actaully turns out to be a big factor in predicting cannabis use.<br>
+To predict this, we will use first 16 predictors and all other drug use data (bar cannabis use and the fictitious drug) available. The method we will use is a random forest, since this allows bagging of predictor variables and allows for complex interations with guards against overfitting. The concession we make with this of course is discretizing the numerical/continuous data. <br>
+We begin by copying in the relevant columns of data into a new dataframe `candata`. We create a new binomial response variable which takes the value "yes" if the subject uses cannabis at least in the last month. Next we carry out the standard process to do a random forest prediction of the response variable. <br>
+```{r}
+candata <- druguse[,c(1:19,21:30)]
+candata$cannabis <- as.factor(ifelse(druguse$cannabis >3, "yes", "no"))
+
+inds <- sample(nrow(candata))
+test.size <- round(nrow(candata)/5)
+ind <- inds[ (test.size*(4-1)+1) : (test.size*4) ]
+
+can.test <- candata[ind,]
+can.train <- candata[-ind,]
+
+RFcan <- randomForest(cannabis ~. , data=can.train, importance = TRUE, ntree = 2000)
+can.prediction <- predict(RFcan, can.test)
+```
+
+The accuracy for this random forest is show by the table and given numerically below <br>
+```{r}
+kable(table(can.prediction, can.test$cannabis))
+print(paste('Accuracy = ', mean(can.prediction == can.test$cannabis)))
+```
+
+(see poster for plot of sample tree) <br>
+
+```{r include = FALSE}
+#plot of sample tree 
+x <- ctree(cannabis ~., data=can.train)
+png("sample_cantree.png", res=80, height=800, width=1600) 
+plot(x) 
+dev.off()
+```
+
+As per our first question, we inspec the Mean Decrease Accuracy of the different predictors <br>
+```{r fig.align='center'}
+importance(RFcan, 1)
+```
+We can analyse the importance in the same way as in part (a) to pick out the most influential predictors, e.g `country` (providing us a potential answer to our second question), `mushrooms`, `legal highs`. The next question is, can we narrow down the information we need to predict regular cannabis use? <br> 
+This time, let's see the result from predicting the same response using only the 10 most influential predictors: `country`, `legalhighs`, `mushrooms`, `nicotine`, `agegroup`, `ecstasy`, `education`, `sensation`, `opentoexperience` and `cocaine`. Repeating the above, only with `candata` overwritten with a smaller dataframe of the above variables, we get<br>
+
+```{r}
+candata <- druguse[,c(1,2,4,8,12,15,21,23,26,29)]
+candata$cannabis <- as.factor(ifelse(druguse$cannabis >3, "yes", "no"))
+
+inds <- sample(nrow(candata))
+test.size <- round(nrow(candata)/5)
+ind <- inds[ (test.size*(4-1)+1) : (test.size*4) ]
+
+can.test <- candata[ind,]
+can.train <- candata[-ind,]
+
+RFcan <- randomForest(cannabis ~. , data=can.train, importance = TRUE, ntree = 2000)
+can.prediction <- predict(RFcan, can.test)
+```
+
+We can summarise the accuracy as above, <br>
+```{r}
+kable(table(can.prediction, can.test$cannabis))
+print(paste('Accuracy = ', mean(can.prediction == can.test$cannabis)))
+```
+
+```{r include = FALSE}
+#plot of sample tree 
+x <- ctree(cannabis ~., data=can.train)
+png("sample_cantree2.png", res=80, height=800, width=1600) 
+plot(x) 
+dev.off()
+```
+
+Which holds more or less the same value as in the first case. We could comfortably say we have the whittled down to the most important predictors of cannibis use in the above 10 variables, giving a confident answer to the 1st question. 
+```{r}
+importance(RFcan, 1)
+```
+And the consistency between the importance readings of the Mean Decrese Accuracy for `country` before and after thinning our predictors means we can say that the country a subject is from has a significant impact on whether they regularly partake in cannabis use, providing us an answer to our second question. 
+
+## Qu 5 
+In question 1, we saw that the glm model suggested that the confimably significant predictors were:`gender`, `sensation`, `opentoexperience` `nicotine`, `country`.<br> 
+
+Gender was shown in Qu1 (a) to be drastically divided between high and low use-levels. around 71% of males were shown to be high-level users, while this was the case for only 39% of females. Our logistic regression compounded this by giving an expected value near 1 and p-value of order $10^{-8}$. Gender was also one of the most significant predictors in the prediction of regular cannabis use, which was one of the most popular drugs of all. For these reasons, I would say gender is important in predicting drug use. <br> 
+
+`Opentoexperience` (or "openness") has shown up again and again. The logistic regresssion gave an openness expectation of around 0.5 and a p value of order $10^{-8}$. 0.5 may not be a large, but recalling the first graph in qu1 (a) which showed that over 70% of people with openness value >0 were high-use-level users coupled with a little intuition lead me to believe that openness is an important predictor. To clarify, it seems likely that people with larger openness values are more likely to try new things, including drugs, so I think it makes sense to call this a significant predictor. <br> 
+
+Sensation is an odd one, because there isn't an immediate intuition as to why having a high sensation value would imply anything about drug use. The logistic regression gives an estimator value of 0.72502 with a small p value of order $10^{-8}$. For this reason and the fact that it also was a significant predictor of regular cannabis use, I am compelled to call it a significant predictor of drug use. <br> 
+
+Nicotine was predicted significant in the logistic regression for `UseLevel` and was a significant predictor of regular cannabis usage. The logistic regression gave it an estimation of around a half with a miniscule p value of order $10^{-16}$. It seems very likely that this is a  significant predictor.It certainly it doesn't seem like a unreasonable guess to say that most if someone is willing to smoke cigarettes regularly, they might well be interested in smoking cannabis for instance. <br>
+
+Country was shown in the last question to be a big predictor for cannabis use. Laws and cultures regularly influence attitudes to drug use, and this was definitely seen in the drastic difference betweent the UK use-levels compared to the US's use-levels. The logistic regression gave the category `'countryUK'`  an huge estimator value of -2.26286 with circumstancially irrefutable p value $10^{-05}$. Thus, I beleive it makes good sense to say country is a very significant predictor. 
+
+One thing that surprised me in the logistic regression was that there was not enough evidence to suggest `agegroup` was a significant predictor for druguse. while the category `'agegroup65+'` got a huge estimator value of -16.73692, the standard error for this was a whopping 486 which gave us the non-informative p value of 0.97. However, we have seen that agegroup was likely a very significant predictor of regular cannabis use, and the frequentist plot in qu 1 (b) showed very recognisable trends across age groups which transcended drug types. Also, it makes sense logically that age predisposes a subject to drug-use levels: we rarely imagine those 65+ to be high-use-level drug users, at least not recreationally, but we _are_ well aware of drug epidemics breaking out in the youngest members of society. Going off the results in Qu 4 and Qu 1, it seems logical to call this a significant predictor for druguse, even if it cannot be backed up by the logistic regression - this is equally refutable by matter of difference of opinion. <br>
+
+Finally, education had a small estimator value of -0.24 in the logistic regression with convicing p value 0.012. This seems enough to call it a significant predictor, even if that significance is not very large. This also correlates with general belief that education decreases ones likelihood to abuse drugs, given better opportunities/ understanding of the dangers. <br>  
+
+The other predictors did not show enough evidence, through large p values in the logistic regression, elimination in the prediction of regular cannabis use or otherwise, that they were significant predictors. Frequentist arguements alone, such as correlation between impulsiveness and high-use-levels are generally not enough to support the belief in the significance of the predictive power of a variable. <br>
+
+
+
+## Mastery <br>
+
+The strengths of the paper are: <br>
+- The inclusion criteria does good work to minimise noise. "It is known that racial and ethnic minorities vary in their treatment access and success levels [25–27]. Thus, we restricted our analysis only to cases indicating a Hispanic/Latino ethnicity, 18 years old or older, and treatment in outpatient service settings." This tailors the result to the specific subset of subjects.<br>
+- Accounted for  2-way interactions <br>
+- The discussion of the limitations of each model is very comprehensive <br>
+The weaknesses of the paper are: <br>
+- encoding of the response variable for treatment discharge status is contentious. For example, encoding 'incarceration' as 'unsuccessful' treatment introduces a bias. In fact this is equivalent to providing the negative response to an NA value. The data set is large enough for this to be cleaned out, only true failures should be categorized as such. <br>
+- 2-fold cross-validation is the smallest cross-validation possible, so this may not give a good estimation of the extra-sample error.<br> 
+- the full implication of weighting the algorithms in SL is not discussed and ratified as sensible. <br> 
+
+The direction I suggest heading in for interested readers/researchers is to try the SL method for a broader (in terms of personal predictors which were limited in the study) data set and compare to the algorithm again, to see where in such a case the meager improvement of SL increases, in the position where such a task would cause overfitting in ANNs and be more difficult for a logistic regression to handle. One could also try answering the question “What is the treatment success rate difference between Hispanics with comorbid psychiatric disorders and those without comorbid disorders?”, as the paper suggests.  
