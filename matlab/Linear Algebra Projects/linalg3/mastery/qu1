@@ -1,0 +1,41 @@
+describe the paper’s key results and detail the implementation of the method both with and without a general preconditioner
+
+
+For large-scale problems, this task is computationally expensive  (compute vectors of the form y = Sz, where S is the Cholesky factor or square root of
+A, and z is a standard normal vector)
+Aim: Lanczos process provides a means to approximate A1/2z, for any vector z from an m-dimensional Krylov subspace. This is motivated by the inneficient (O(N^3))
+method of computing a cholesky decomposition A = SS^T to compute y = A^\frac{1}/{2} z the random sample. show how to enhance the convergence of the process via
+preconditioning via polynomial methods which are faster than factoring methods and more general than spectral methods which require highly structured (e.g block
+Toeplitz) matrices.
+
+implementation: let p(A) be a polynomial approximating the principal square root of A. Generate the mth (say) Krylov space Km(A,z) via the Lanczos process.
+  The optimal approximation of p(A) this in Km is exactly its projection into Km, y∗m = VmV^Tm p(A)z. By taking v1 = z/norm(z)^2, β = z2 and allowing the
+  approximation V^Tm p(A)Vm ≈ f(V^Tm AVm), we reach the mth approximation ˜ym = βVmp(Tm)e1 ≈ y∗ and p(Tm) is computed by some non intensive (as the number of
+  iterations is low) method.
+  preconditioning: implements factorized sparse approximate inverse (FSAI) preconditioning. This means to pick a sparse lower triangular matrix G, such that
+  G^TG ≈ A^−1 motivated by and approximated to the Cholesky factor of A^-1. Which is computed on minimising the Frobenius norm norm(I - GL)_F^2 = tr((I-GL)(I-GL)^T)
+  where L is the Cholesky factor of A^-1. Sparsity and lower triangularity constraints on G means that it can be found inexpensively without knowing L.
+
+results:
+
+The relative norm error closely matches the exact error norm. If convergence is fast, then the estimated error is shown in examples to be more accurate than
+for cases when convergence is fast. The good thing about this is that given the ability of the preconditioner to cluster the spectrum of Tm aroud one eigenvalue
+and hence convergence is expected to be fast.
+
+
+(sparse matrices) more iterations risks loss of orthogonality between the basis vectors. reorthogonalization can be done but is not standard and invevitably adds
+computation to the problem. In cases where the matrix is ill-conditioned (e.g piecewise polynomial covariance matrices with higher l value) more iterations are
+required by the algorithm for the untreated matrix which leads to greater risk of losing orthogonality. As the preconditioned matrix reduces the condition number
+and converges in fewer iterations (as well as with lower run-time) there is lower risk of losing orthogonality and the relative error is a better approximation of
+the actual error. So for ill-conditioned matrices, the benefit is large.
+
+other things: Cholesky was much much slower than this method.The results again show that preconditioning reduces the iteration count and computation time for computing
+a sample vector.
+
+(dense matrices) dramatic decrease in number of iterations and computation time, particularly as the size of the matrix increases. The effect of FSAI actually greater
+here than for sparse matrices. The time taken to precondition is minimal even in very large cases. In larger cases 'set up' time is vastly outweighed by the iteration
+time. In smaller cases it can be around the same order as the iteration time, but even in sum this is much less than the computation time in the unpreconditioned case.
+
+other things: Cholesky took an extremely long time in the largest case.
+
+stencil size has an optimal value. If the stencil size is increased too greatly then setup time becomes large and iteration time is not decreased which is negative.

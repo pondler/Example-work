@@ -1,0 +1,1 @@
+The format of this computational linear algebra course is as follows. Each project contains a writeup which gives context to the code in the folders. The code is thoroughly explained in the writeup, but is also commented in the matlab files. The writeup does not feature code snippets. 

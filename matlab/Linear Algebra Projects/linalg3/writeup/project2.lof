@@ -1,0 +1,25 @@
+\boolfalse {citerequest}\boolfalse {citetracker}\boolfalse {pagetracker}\boolfalse {backtracker}\relax 
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {1.1}{\ignorespaces \cite {1}:Givens Rotations push the out-of-band term out}}{4}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {1.2}{\ignorespaces run-time of \texttt {tridiagonalize} against N}}{6}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {1.3}{\ignorespaces run-time of QR and implicit RQ in \texttt {WilkinsonQR} against N}}{7}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {1.4}{\ignorespaces plot of sorted eigenvalues against their index}}{8}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {1.5}{\ignorespaces Plots of $\abs {\Psi _n}^2$ for negative $E_n$}}{10}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {1.6}{\ignorespaces Plot of $\abs {\Psi _n}^2$ for a positive $E_n$}}{11}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Plot of convergence time of CG vs $LDL^T$}}{13}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Plot of iteration count of CG vs $LDL^T$}}{14}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Plot of iteration count of CG vs preconditioned CG}}{15}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Plot of convergence time of CG vs preconditioned CG}}{16}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Plot of b against N contoured by run-time }}{19}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Plot of b against N contoured by N-iterations}}{20}

@@ -1,0 +1,241 @@
+\documentclass[paper=a4, fontsize=12pt]{scrartcl} % A4 paper and 11pt font size
+
+% \usepackage[T1]{fontenc} % use 8-bit encoding that has 256 glyphs
+\usepackage{fourier}     % use the Adobe Utopia font for the document
+                         % (comment this line to return to the LaTeX default)
+%\usepackage{babel} % English language/hyphenation
+\usepackage{amsmath,amsfonts,amsthm} % math packages
+\usepackage{subeqnarray}
+
+\usepackage{lipsum} % used for inserting dummy 'Lorem ipsum' text into the template
+\usepackage{bold-extra}
+
+\usepackage{listings}
+\usepackage[utf8]{inputenc}
+\usepackage{centernot}
+\usepackage{mathrsfs}
+\usepackage{amssymb}
+\usepackage{physics}
+\usepackage{verbatim}
+\usepackage{fancyvrb}
+\usepackage{biblatex}
+
+% default fixed font does not support bold face
+% \DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{12} % for bold
+% \DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{12}  % for normal
+
+% custom colors
+\usepackage{color}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+\definecolor{lightblue}{rgb}{0.95,0.95,1}
+\definecolor{lightgrey}{rgb}{0.6,0.6,0.6}
+\usepackage{listings}
+
+% use graphics packages
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{matrix}
+\usetikzlibrary{calc}
+\usetikzlibrary{patterns,fadings}
+
+% python style for highlighting
+\newcommand\pythonstyle{\lstset{
+language=Python,
+backgroundcolor=\color{lightblue},
+basicstyle=\ttm,
+otherkeywords={self,def},             % add keywords here
+keywordstyle=\ttb\color{deepblue},
+emph={while,for,if,elif,else,def,as,shape,conj,dot,copy,flatten,eye,zeros,ones,hstack,vstack,real,imag,conjugate,sin,cos,exp,append,insert,index,__main__}, % custom highlighting
+%emphstyle=\ttb\color{deepred},     % custom highlighting style
+emphstyle=\ttb\color{deepblue},     % custom highlighting style
+stringstyle=\color{deepgreen},
+commentstyle=\color{lightgrey},
+frame=tb,                         % any extra options here
+numbers=left,
+showstringspaces=false            %
+}}
+
+% python environment
+\lstnewenvironment{python}[1][]
+{
+\pythonstyle
+\lstset{#1}
+}
+{}
+
+% python for external files
+\newcommand\pythonexternal[2][]{{
+\pythonstyle
+\lstinputlisting[#1]{#2}}}
+
+% python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+
+\usepackage{sectsty}        % allows customizing section commands
+\allsectionsfont{\normalfont\scshape}      % make all sections centered
+                                                      % the default font and small caps
+\newcommand{\ssubsection}[1]{%
+  \subsection[#1]{\raggedright\normalfont\itshape #1}}
+
+\usepackage{fancyhdr}        % custom headers and footers
+\pagestyle{fancyplain}       % makes all pages in the document conform to
+                             % the custom headers and footers
+
+% \renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ #1}{}}
+\fancyhead[L]{\footnotesize\scshape\leftmark}
+\fancyhead[R]{Page \thepage}
+
+
+                             % the same way as the footers below
+\fancyfoot[L]{\textit{Christopher R. McLeod}}              % empty left footer
+\fancyfoot[C]{}              % empty center footer
+\fancyfoot[R]{\textit{00947553}}      % page numbering for right footer
+\renewcommand{\headrulewidth}{0.5pt}     % add header underlines
+\renewcommand{\footrulewidth}{0.5pt}     % add footer underlines
+\setlength{\headheight}{13.6pt}        % customize the height of the header
+
+
+
+\numberwithin{equation}{section}       % number equations within sections
+                                       % (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{figure}{section}         % number figures within sections
+                                       % (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{table}{section}          % number tables within sections
+                                       % (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+
+\setlength\parindent{24pt}         % removes all indentation from paragraphs
+                                  % comment this line for an assignment with lots of text
+
+
+% \usepackage[T1]{fontenc}
+\usepackage{enumerate}
+
+% \usepackage[tocflat]{tocstyle}
+\allowdisplaybreaks
+\makeatletter
+\setcounter{tocdepth}{4}
+% \renewcommand\tableofcontents{%
+%   \null\hfill\textsc{\Large\contentsname}\hfill\null\par
+%   \vspace{1cm}
+%   \@mkboth{\MakeUppercase\contentsname}{\MakeUppercase\contentsname}%
+%   \@starttoc{toc}%
+% }
+% \renewcommand*\l@section{\ifnum\c@tocdepth>\z@\vskip 6pt plus 1pt minus 1pt \fi
+%                          \@dottedtocline{1}{1.5em}{2.3em}}
+% \renewcommand{\@pnumwidth}{1.75em}
+% \renewcommand{\@tocrmarg}{2.75em}
+\makeatother
+
+%--------------------------
+%	TITLE SECTION
+%--------------------------
+\renewcommand*\contentsname{Summary}
+
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} % create horizontal rule command
+                                                % with 1 argument of height
+
+
+\renewcommand*\footnoterule{}
+
+
+\title{
+\normalfont \normalsize
+\textsc{Imperial College London, Department of Mathematics} \\ [25pt]
+\horrule{0.5pt} \\[0.4cm]                      % thin top horizontal rule
+\huge M4N9 Project 1: \\ Topographical Reconstruction of
+Tycho Crater using Moving Least Squares \\           % the assignment title
+\horrule{2pt} \\[0.5cm]                        % thick bottom horizontal rule
+}
+
+
+\author{Christopher McLeod}
+\date{\normalsize\ November 3, 2017}
+
+\begin{document}
+%\ttfamily
+%\fontseries{b}\selectfont
+
+\titlepage
+\maketitle
+\begin{center}
+  \includegraphics[width=100pt]{crest.png} \\
+
+  \vfill
+  \vspace{4cm}
+  \textbf{Abstract} \\
+This project makes use of Householder QR-decomposition to highlight the effectiveness of `Least Squares' and `Moving Least Squares' techinques in reconstructing
+2D topographical information about the Moon's crater Tycho. The aim of this paper is to explore the quality and effectiveness of the two techniques by applying
+them to data.
+\end{center}
+\thispagestyle{empty}
+
+%-----------------------------------------------------------------------
+% contents page
+%-----------------------------------------------------------------------
+\newpage
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+
+%-----------------------------------------------------------------------
+% Rest of Paper
+%-----------------------------------------------------------------------
+
+\section*{\centerline{Foreword}}
+
+In the interest of making this paper as consise as possible, in general functions and scripts have been excluded from the final
+write-up. What is included is a description of the algorithms and programs, in terms of what function they perform. For the implementation,
+the code is provided alongside this paper with detailed comments.\\
+
+\section{Introduction: Statement of the Problem}
+
+
+
+
+
+
+
+\newpage
+
+
+
+\addcontentsline{toc}{section}{References}
+\begin{thebibliography}{5}
+  \bibitem{1}
+  Weisstein, Eric W. ``Least Squares Fitting--Polynomial.''
+  From MathWorld--A Wolfram Web Resource.
+  \\\texttt{http://mathworld.wolfram.com/LeastSquaresFittingPolynomial.html}
+
+  \bibitem{2}
+  Lee, Do Q. ``Numerically Efficient Methods For Solving Least Squares Problems''
+  (2012)
+  \\\texttt{https://www.rose-hulman.edu/~bryan/lottamath/leastsqrs.pdf}
+
+  \bibitem{3}
+  Epperson, James F. ``On the Runge Example''
+  University of Georgia, Athens 1987
+  Available at
+  \\\texttt{https://www.maa.org/sites/default/files/pdf/upload\_library/22/Ford/
+  Epperson329-341.pdf}
+
+  \bibitem{4}
+  Alexa, Mark et. al  "Computing and Rendering Point Set Surfaces"
+  TU Darmstadt, Tel Aciv University, AT&T Labs 2003
+  Available at
+  \\\texttt{http://ieeexplore.ieee.org/document/1175093/}
+% \end{thebibliography}
+
+\addcontentsline{toc}{section}{Appendix}
+\section*{Appendix}
+\begin{appendix}
+\listoffigures
+\listoftables
+
+\end{appendix}
+
+\end{document}
